@@ -227,6 +227,36 @@ class DataProcessor(object):
             return lines
 
 
+# MINE
+class AnliProcessor(DataProcessor):
+    """Processor for the XNLI data set."""
+
+    def __init__(self):
+        self.language = "zh"
+
+    def get_examples(self, data_dir, data_csv, task):
+        examples = []
+        with tf.gfile.Open(os.path.join(data_dir, data_csv), "r") as f:
+            for i, (a, _, c) in enumerate(csv.reader(f)):
+                text_a = tokenization.convert_to_unicode(a)
+                text_b = tokenization.convert_to_unicode(c)
+                label = tokenization.convert_to_unicode("1")
+                example = InputExample(
+                    guid=f"{task}-{i}", text_a=text_a, text_b=text_b, label=label
+                )
+                examples.append(example)
+        return examples
+
+    def get_train_examples(self, data_dir):
+        return self.get_examples(data_dir, "train.csv", "train")
+
+    def get_test_examples(self, data_dir):
+        return self.get_examples(data_dir, "test.csv", "test")
+
+    def get_labels(self):
+        return ["0", "1"]
+
+
 class XnliProcessor(DataProcessor):
     """Processor for the XNLI data set."""
 
@@ -852,6 +882,8 @@ def main(_):
     tf.logging.set_verbosity(tf.logging.INFO)
 
     processors = {
+        # MINE
+        "anli": AnliProcessor,
         "cola": ColaProcessor,
         "mnli": MnliProcessor,
         "mrpc": MrpcProcessor,
