@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
+import pickle
 import csv
 import os
 import modeling
@@ -235,11 +236,16 @@ class AnliProcessor(DataProcessor):
         self.language = "zh"
 
     def get_examples(self, data_dir, data_csv, task):
+        def cut512(s):
+            if len(s) > 512:
+                return s[:128] + s[-382:]
+            return s
+
         examples = []
         with tf.gfile.Open(os.path.join(data_dir, data_csv), "r") as f:
             for i, (a, _, c) in enumerate(csv.reader(f)):
-                text_a = tokenization.convert_to_unicode(a)
-                text_b = tokenization.convert_to_unicode(c)
+                text_a = tokenization.convert_to_unicode(cut512(a))
+                text_b = tokenization.convert_to_unicode(cut512(c))
                 label = tokenization.convert_to_unicode("1")
                 example = InputExample(
                     guid=f"{task}-{i}", text_a=text_a, text_b=text_b, label=label
@@ -249,6 +255,9 @@ class AnliProcessor(DataProcessor):
 
     def get_train_examples(self, data_dir):
         return self.get_examples(data_dir, "train.csv", "train")
+
+    def get_dev_examples(self, data_dir):
+        return self.get_examples(data_dir, "dev.csv", "dev")
 
     def get_test_examples(self, data_dir):
         return self.get_examples(data_dir, "test.csv", "test")
@@ -455,6 +464,10 @@ def convert_single_example(ex_index, example, label_list, max_seq_length, tokeni
     label_map = {}
     for (i, label) in enumerate(label_list):
         label_map[label] = i
+    # MINE
+    output_label2id_file = os.path.join(FLAGS.output_dir, "label2id.pkl")
+    with open(output_label2id_file, "wb") as w:
+        pickle.dump(label_map, w)
 
     tokens_a = tokenizer.tokenize(example.text_a)
     tokens_b = None
